@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'account_type.dart';
 import 'home_screen.dart';
 
 bool isUsjrEmail(String email) =>
@@ -26,6 +27,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isCreatingAccount = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
+  AccountType _accountType = AccountType.regular;
   String? _errorMessage;
   String? _successMessage;
   User? _user;
@@ -70,6 +72,7 @@ class _AuthScreenState extends State<AuthScreen> {
         final response = await auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          data: {'account_type': _accountType.metadataValue},
         );
         if (mounted) {
           if (response.session != null) {
@@ -86,8 +89,8 @@ class _AuthScreenState extends State<AuthScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+        final user = response.session?.user ?? response.user;
         if (mounted) {
-          final user = response.session?.user ?? response.user;
           if (user != null) {
             setState(() => _user = user);
           }
@@ -121,7 +124,10 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     if (_user != null) {
-      return HomeScreen(email: _user!.email ?? '');
+      return HomeScreen(
+        email: _user!.email ?? '',
+        accountType: AccountType.fromUser(_user!),
+      );
     }
 
     final colors = Theme.of(context).colorScheme;
@@ -164,10 +170,41 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Sign in with your USJ-R email to continue.',
+          _isCreatingAccount
+              ? 'Choose your account type and sign up with your USJ-R email.'
+              : 'Sign in with your USJ-R email to continue.',
           style: TextStyle(color: colors.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
+        if (_isCreatingAccount) ...[
+          SegmentedButton<AccountType>(
+            segments: const [
+              ButtonSegment<AccountType>(
+                value: AccountType.regular,
+                label: Text('Regular'),
+              ),
+              ButtonSegment<AccountType>(
+                value: AccountType.foodStall,
+                label: Text('Food stall'),
+              ),
+            ],
+            selected: {_accountType},
+            onSelectionChanged: _isLoading
+                ? null
+                : (selection) {
+                    setState(() => _accountType = selection.first);
+                  },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _accountType == AccountType.regular
+                ? 'For students and professors'
+                : 'For food stall accounts',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+        ],
         Form(
           key: _formKey,
           child: Column(
@@ -286,6 +323,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     : () {
                         setState(() {
                           _isCreatingAccount = !_isCreatingAccount;
+                          _accountType = AccountType.regular;
                           _errorMessage = null;
                           _successMessage = null;
                         });

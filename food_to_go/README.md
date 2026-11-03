@@ -28,3 +28,27 @@ by Supabase Auth.
 
 The app checks the email domain for both sign-up and sign-in. The database
 hook rejects non-USJ-R addresses on the server during account creation too.
+
+## Account types
+
+Account creation lets a user choose **Regular** (for students and professors)
+or **Food stall**. After login, the app opens the matching dashboard.
+**Admin** accounts are assigned by the developer and cannot be selected at
+public sign-up.
+
+When creating an account, the selected type is saved as Supabase user metadata:
+
+- Regular: `{"account_type":"regular"}`
+- Food stall: `{"account_type":"foodstall"}`
+
+For admins, set the user's **app metadata** in the Supabase dashboard to
+`{"account_type":"admin"}`. This is separate from user metadata, which users
+can change. Enforce data access with Supabase Row Level Security policies;
+client-side role selection is for directing users to the appropriate screen,
+not for granting secure access.
+
+## Regular-user dashboard
+
+The regular dashboard displays an available-stalls list. It currently shows an
+empty state until food stall listings are connected to a backend. The food-stall
+dashboard has a placeholder for incoming orders.
